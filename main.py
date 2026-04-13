@@ -3,13 +3,13 @@ import aiohttp
 import os
 from telethon import TelegramClient, events
 
-# Config from environment variables
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 PHONE = os.environ.get("PHONE")
 N8N_WEBHOOK = os.environ.get("N8N_WEBHOOK")
+TG_CODE = os.environ.get("TG_CODE", "")
+TG_PASSWORD = os.environ.get("TG_PASSWORD", "")
 
-# Keywords
 SEO_KEYWORDS = [
     'seo', 'need seo', 'seo help', 'looking for seo', 'hire seo',
     'seo agency', 'seo specialist', 'seo consultant', 'seo recommendations',
@@ -37,13 +37,12 @@ WEB3_KEYWORDS = [
     'токен розробка', 'nft розробка', 'defi розробка'
 ]
 
-# Chats to monitor
 CHATS = [
     'chat_targetologov', 'smmbunker', 'theinstapreneurscommunity',
     'go_motion_ua', 'target_tricks', 'tiktoktarget_chat',
     'ukraine_digital', 'community_EdTech', 'sendpulseacademy',
     'hworknet_community', 'digitaltopchik', 'notabenebusiness',
-    'kyivdigitalpochik', 'Ukr_copywriters_group', 'ua_wp',
+    'kyivdigitaltopchik', 'Ukr_copywriters_group', 'ua_wp',
     'executive_search_ua', 'spaceberry_community', 'huntlify',
     'vizual_hub', 'marketing_jobs_ua', 'salesheroadschat',
     'it_job_ua', 'itexpert_vacancies', 'webflow_ukraine',
@@ -52,8 +51,6 @@ CHATS = [
     'kol3io', 'OfficialCryptoExpoDubai', 'w3xnetwork',
     'VCsDAO', 'SV_founders', 'CryptoHorizonEverywhere',
     'buildondogeos', 'myronairdropchat',
-    # invite links — потрібно вступити вручну заздалегідь
-    # потім додати їх username або chat_id сюди
 ]
 
 client = TelegramClient('leadmonitor', API_ID, API_HASH)
@@ -84,29 +81,31 @@ async def handler(event):
 
     username = getattr(sender, 'username', None) or 'no_username'
     first_name = getattr(sender, 'first_name', '') or ''
-    last_name = getattr(sender, 'last_name', '') or ''
     chat_title = getattr(chat, 'title', '') or ''
     chat_username = getattr(chat, 'username', '') or ''
-
     profile_link = f"https://t.me/{username}" if username != 'no_username' else 'no link'
     chat_link = f"https://t.me/{chat_username}" if chat_username else 'private group'
 
     payload = {
         'category': category,
         'text': text[:500],
-        'sender_name': f"{first_name} {last_name}".strip(),
+        'sender_name': first_name,
         'sender_username': username,
         'profile_link': profile_link,
         'chat_title': chat_title,
         'chat_link': chat_link,
-        'message_link': f"{chat_link}/{event.message.id}" if chat_username else 'private'
+        'source': 'telegram'
     }
 
     await send_to_n8n(payload)
     print(f"[{category.upper()}] {chat_title} | {first_name}: {text[:80]}")
 
 async def main():
-    await client.start(phone=PHONE)
+    await client.start(
+        phone=PHONE,
+        code_callback=lambda: TG_CODE,
+        password=TG_PASSWORD if TG_PASSWORD else None
+    )
     print("Userbot started! Monitoring chats...")
     await client.run_until_disconnected()
 
