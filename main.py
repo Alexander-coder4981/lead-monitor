@@ -2,13 +2,12 @@ import asyncio
 import aiohttp
 import os
 from telethon import TelegramClient, events
+from telethon.sessions import StringSession
 
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
-PHONE = os.environ.get("PHONE")
 N8N_WEBHOOK = os.environ.get("N8N_WEBHOOK")
-TG_CODE = os.environ.get("TG_CODE", "")
-TG_PASSWORD = os.environ.get("TG_PASSWORD", "")
+SESSION_STRING = os.environ.get("SESSION_STRING")
 
 SEO_KEYWORDS = [
     'seo', 'need seo', 'seo help', 'looking for seo', 'hire seo',
@@ -53,7 +52,7 @@ CHATS = [
     'buildondogeos', 'myronairdropchat',
 ]
 
-client = TelegramClient('leadmonitor', API_ID, API_HASH)
+client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 
 def categorize(text):
     text_lower = text.lower()
@@ -101,11 +100,7 @@ async def handler(event):
     print(f"[{category.upper()}] {chat_title} | {first_name}: {text[:80]}")
 
 async def main():
-    await client.start(
-        phone=PHONE,
-        code_callback=lambda: TG_CODE,
-        password=TG_PASSWORD if TG_PASSWORD else None
-    )
+    await client.connect()
     print("Userbot started! Monitoring chats...")
     await client.run_until_disconnected()
 
