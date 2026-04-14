@@ -49,7 +49,10 @@ CHATS = [
     'freelance247', 'PRO_Design_chat_PSS', 'HR_IT_Community_chat',
     'kol3io', 'OfficialCryptoExpoDubai', 'w3xnetwork',
     'VCsDAO', 'SV_founders', 'CryptoHorizonEverywhere',
-    'buildondogeos', 'myronairdropchat', 'doshkajob',
+    'buildondogeos', 'myronairdropchat', 'doshkajob', 'graphic_designerisss_chat', 
+    'affhub_community', 'RudenkoSMM', 'emontajka', 'PRO_Ecommerce_chat', 'real_targetolog',
+    'ua_ugc_chat', 
+    
 ]
 
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
