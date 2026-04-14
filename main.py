@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import os
+import re
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 
@@ -9,31 +10,85 @@ API_HASH = os.environ.get("API_HASH")
 N8N_WEBHOOK = os.environ.get("N8N_WEBHOOK")
 SESSION_STRING = os.environ.get("SESSION_STRING")
 
-SEO_KEYWORDS = [
-    'seo', 'need seo', 'seo help', 'looking for seo', 'hire seo',
-    'seo agency', 'seo specialist', 'seo consultant', 'seo recommendations',
-    'not showing up on google', 'google not indexing', 'lost rankings',
-    'rank on google', 'website traffic', 'no traffic', 'backlink',
-    'domain authority', 'technical seo', 'seo audit', 'content marketing',
-    'search engine', 'keyword research', 'serp', 'google penalty',
-    'competitors ranking', 'outrank', 'page speed seo', 'link building',
-    'потрібен seo', 'шукаю seo', 'seo фахівець', 'просування сайту',
-    'виведення в топ', 'органічний трафік', 'індексація сайту',
-    'позиції в гугл', 'seo спеціаліст', 'потрібне просування',
-    'нема трафіку', 'сайт не знаходять', 'впав трафік'
+# Короткі слова — перевіряємо як цілі слова (word boundary)
+WEB3_EXACT = [
+    'web3', 'nft', 'dao', 'defi', 'dapp', 'crypto',
+    'токен', 'крипта', 'криптo'
 ]
 
-WEB3_KEYWORDS = [
-    'web3', 'blockchain', 'solidity', 'smart contract', 'dapp',
-    'defi', 'nft', 'dao', 'crypto', 'token', 'layer2', 'erc-20',
-    'erc20', 'hire blockchain', 'hire web3', 'need web3', 'web3 developer',
-    'blockchain developer', 'web3 team', 'blockchain development',
-    'nft marketplace', 'defi protocol', 'token development',
-    'smart contract audit', 'web3 outsource', 'blockchain mvp',
-    'crypto startup', 'custom blockchain', 'web3 product',
-    'потрібен web3', 'блокчейн розробник', 'смарт контракт',
-    'крипто проект', 'web3 команда', 'блокчейн проект',
-    'токен розробка', 'nft розробка', 'defi розробка'
+# Довгі фрази — перевіряємо як підрядок
+WEB3_PARTIAL = [
+    # Розробка
+    'blockchain', 'solidity', 'smart contract', 'layer2', 'erc-20', 'erc20',
+    'web3 developer', 'blockchain developer', 'solidity developer',
+    'smart contract developer', 'blockchain development', 'web3 development',
+    'web3 team', 'web3 outsource', 'blockchain mvp', 'web3 product',
+    'hire blockchain', 'hire web3', 'need web3',
+    # Продукти
+    'nft marketplace', 'defi protocol', 'token development', 'tokenomics',
+    'smart contract audit', 'crypto startup', 'custom blockchain',
+    'crypto exchange', 'crypto wallet', 'crypto project',
+    'web3 app', 'decentralized app', 'defi app', 'blockchain app',
+    'p2e', 'play to earn', 'gamefi', 'metaverse development',
+    # Інфра
+    'ethereum', 'solana', 'polygon', 'binance smart chain', 'bsc',
+    'avalanche', 'near protocol', 'polkadot', 'substrate',
+    'hardhat', 'foundry', 'truffle', 'web3.js', 'ethers.js',
+    'ipfs', 'chainlink', 'opensea',
+    # Укр/рос
+    'блокчейн розробник', 'смарт контракт', 'крипто проект',
+    'web3 команда', 'блокчейн проект', 'токен розробка',
+    'nft розробка', 'defi розробка', 'потрібен web3',
+    'блокчейн розробка', 'крипто стартап', 'децентралізований',
+    'криптовалют', 'майнінг сайт', 'крипто біржа',
+]
+
+# Короткі SEO слова
+SEO_EXACT = [
+    'seo', 'serp', 'sem', 'ppc',
+]
+
+# Довгі SEO фрази
+SEO_PARTIAL = [
+    # Прямий запит
+    'need seo', 'seo help', 'looking for seo', 'hire seo',
+    'seo agency', 'seo specialist', 'seo consultant', 'seo expert',
+    'seo recommendations', 'seo service', 'seo manager',
+    'seo freelancer', 'seo підрядник', 'seo на аутсорс',
+    # Проблеми з сайтом
+    'not showing up on google', 'google not indexing',
+    'lost rankings', 'site dropped', 'ranking dropped',
+    'penalty recovery', 'google penalty', 'manual action google',
+    'website not found', "can't find my site",
+    'не індексується', 'сайт не знаходять', 'впав трафік',
+    'не показується в гугл', 'вилетів з гугла',
+    # Трафік
+    'rank on google', 'website traffic', 'organic traffic',
+    'no traffic', 'increase traffic', 'get more visitors',
+    'виведення в топ', 'органічний трафік', 'нема трафіку',
+    'позиції в гугл', 'топ гугл', 'перша сторінка гугл',
+    # Технічне
+    'backlink', 'link building', 'domain authority',
+    'technical seo', 'seo audit', 'page speed seo',
+    'core web vitals', 'sitemap', 'robots.txt проблема',
+    'індексація сайту', 'технічне seo',
+    # Конкуренти
+    'competitors ranking', 'outrank competitors',
+    'конкуренти вище в гугл', 'обігнати конкурентів в гугл',
+    # Контент
+    'content marketing', 'keyword research', 'search engine',
+    'blog for seo', 'seo content', 'write for seo',
+    'контент під seo', 'seo тексти', 'ключові слова сайт',
+    # Локальне seo
+    'local seo', 'google maps ranking', 'google my business',
+    'google business profile', 'локальне seo', 'гугл мапи просування',
+    # Загальне
+    'потрібен seo', 'шукаю seo', 'seo фахівець',
+    'просування сайту', 'seo спеціаліст', 'потрібне просування',
+    'розкрутка сайту', 'просування в пошуку',
+    # Реклама (суміжне)
+    'google ads specialist', 'google ads help', 'ppc specialist',
+    'контекстна реклама', 'гугл реклама фахівець',
 ]
 
 CHATS = [
@@ -49,18 +104,26 @@ CHATS = [
     'freelance247', 'PRO_Design_chat_PSS', 'HR_IT_Community_chat',
     'kol3io', 'OfficialCryptoExpoDubai', 'w3xnetwork',
     'VCsDAO', 'SV_founders', 'CryptoHorizonEverywhere',
-    'buildondogeos', 'myronairdropchat', 'doshkajob', 'graphic_designerisss_chat', 
-    'affhub_community', 'RudenkoSMM', 'emontajka', 'PRO_Ecommerce_chat', 'real_targetolog',
-    'ua_ugc_chat', 
-    
+    'buildondogeos', 'myronairdropchat', 'doshkajob',
+    'graphic_designerisss_chat', 'affhub_community', 'RudenkoSMM',
+    'emontajka', 'PRO_Ecommerce_chat', 'real_targetolog', 'ua_ugc_chat',
 ]
 
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 
 def categorize(text):
     text_lower = text.lower()
-    is_web3 = any(kw in text_lower for kw in WEB3_KEYWORDS)
-    is_seo = any(kw in text_lower for kw in SEO_KEYWORDS)
+
+    is_web3 = any(
+        re.search(r'\b' + re.escape(kw) + r'\b', text_lower)
+        for kw in WEB3_EXACT
+    ) or any(kw in text_lower for kw in WEB3_PARTIAL)
+
+    is_seo = any(
+        re.search(r'\b' + re.escape(kw) + r'\b', text_lower)
+        for kw in SEO_EXACT
+    ) or any(kw in text_lower for kw in SEO_PARTIAL)
+
     if is_web3:
         return 'web3'
     if is_seo:
